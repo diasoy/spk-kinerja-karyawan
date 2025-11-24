@@ -1,50 +1,11 @@
 import { prisma } from '@/lib/prisma'
-
-export interface Karyawan {
-  id: string
-  nip: string
-  nama: string
-  jabatan: string
-  departemen: string
-  nilaiKinerja: number
-  kehadiran: number
-  produktivitas: number
-  kualitasKerja: number
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface CreateKaryawanInput {
-  nip: string
-  nama: string
-  jabatan: string
-  departemen: string
-  nilaiKinerja: number
-  kehadiran: number
-  produktivitas: number
-  kualitasKerja: number
-}
-
-export interface CreateKaryawanWithPenilaianInput {
-  nip: string
-  nama: string
-  jabatan: string
-  departemen: string
-  penilaian: {
-    subKriteriaId: string
-    nilai: number
-  }[]
-}
-
-/**
- * Mengambil semua data karyawan, diurutkan berdasarkan nilai kinerja
- */
+import { CreateKaryawanWithPenilaianInput, Karyawan } from '@/types/karyawan'
 export async function getAllKaryawan(): Promise<Karyawan[]> {
   try {
     const karyawan = await prisma.karyawan.findMany({
-      orderBy: {
-        nilaiKinerja: 'desc'
-      }
+        orderBy: {
+            nip: 'asc'
+        }
     })
     return karyawan
   } catch (error) {
@@ -60,7 +21,7 @@ export async function getKaryawanById(id: string): Promise<Karyawan | null> {
   try {
     const karyawan = await prisma.karyawan.findUnique({
       where: { id }
-    })
+    }) as Karyawan | null
     return karyawan
   } catch (error) {
     console.error('Error fetching karyawan by id:', error)
@@ -75,7 +36,7 @@ export async function getKaryawanByNip(nip: string): Promise<Karyawan | null> {
   try {
     const karyawan = await prisma.karyawan.findUnique({
       where: { nip }
-    })
+    }) as Karyawan | null
     return karyawan
   } catch (error) {
     console.error('Error fetching karyawan by nip:', error)
@@ -103,9 +64,6 @@ export async function getKaryawanStats() {
     return {
       total: karyawan.length,
       averageKinerja: karyawan.reduce((acc, k) => acc + k.nilaiKinerja, 0) / karyawan.length,
-      averageKehadiran: karyawan.reduce((acc, k) => acc + k.kehadiran, 0) / karyawan.length,
-      averageProduktivitas: karyawan.reduce((acc, k) => acc + k.produktivitas, 0) / karyawan.length,
-      averageKualitasKerja: karyawan.reduce((acc, k) => acc + k.kualitasKerja, 0) / karyawan.length
     }
   } catch (error) {
     console.error('Error calculating karyawan stats:', error)
@@ -136,9 +94,6 @@ export async function createKaryawanWithPenilaian(input: CreateKaryawanWithPenil
         jabatan: input.jabatan,
         departemen: input.departemen,
         nilaiKinerja: nilaiKinerja,
-        kehadiran: 0,
-        produktivitas: 0,
-        kualitasKerja: 0,
         penilaianDetail: {
           create: input.penilaian.map(p => ({
             subKriteriaId: p.subKriteriaId,

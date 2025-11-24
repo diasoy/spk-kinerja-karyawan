@@ -4,7 +4,6 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  // Hapus data lama (urutan penting karena relasi)
   await prisma.penilaianDetail.deleteMany()
   await prisma.subKriteria.deleteMany()
   await prisma.kriteria.deleteMany()
@@ -63,9 +62,6 @@ async function main() {
         jabatan: 'Manager',
         departemen: 'IT',
         nilaiKinerja: 92.5,
-        kehadiran: 95.0,
-        produktivitas: 90.0,
-        kualitasKerja: 93.0,
       },
       {
         nip: 'K002',
@@ -73,9 +69,6 @@ async function main() {
         jabatan: 'Senior Developer',
         departemen: 'IT',
         nilaiKinerja: 88.0,
-        kehadiran: 92.0,
-        produktivitas: 87.0,
-        kualitasKerja: 89.0,
       },
       {
         nip: 'K003',
@@ -83,9 +76,6 @@ async function main() {
         jabatan: 'Junior Developer',
         departemen: 'IT',
         nilaiKinerja: 78.5,
-        kehadiran: 88.0,
-        produktivitas: 75.0,
-        kualitasKerja: 80.0,
       },
       {
         nip: 'K004',
@@ -93,9 +83,6 @@ async function main() {
         jabatan: 'HR Manager',
         departemen: 'HRD',
         nilaiKinerja: 85.0,
-        kehadiran: 96.0,
-        produktivitas: 82.0,
-        kualitasKerja: 87.0,
       },
       {
         nip: 'K005',
@@ -103,9 +90,6 @@ async function main() {
         jabatan: 'Marketing Staff',
         departemen: 'Marketing',
         nilaiKinerja: 82.0,
-        kehadiran: 90.0,
-        produktivitas: 80.0,
-        kualitasKerja: 84.0,
       },
       {
         nip: 'K006',
@@ -113,9 +97,6 @@ async function main() {
         jabatan: 'Finance Manager',
         departemen: 'Finance',
         nilaiKinerja: 90.0,
-        kehadiran: 94.0,
-        produktivitas: 88.0,
-        kualitasKerja: 92.0,
       },
       {
         nip: 'K007',
@@ -123,9 +104,6 @@ async function main() {
         jabatan: 'Sales Manager',
         departemen: 'Sales',
         nilaiKinerja: 86.5,
-        kehadiran: 91.0,
-        produktivitas: 85.0,
-        kualitasKerja: 88.0,
       },
     ],
   })

@@ -1,19 +1,5 @@
 import { prisma } from '@/lib/prisma'
-
-export interface SubKriteria {
-  id: string
-  kode: string
-  namaSubKriteria: string
-  faktor: string
-  nilaiStandar: number
-}
-
-export interface Kriteria {
-  id: string
-  kode: string
-  namaKriteria: string
-  subKriteria: SubKriteria[]
-}
+import { Kriteria, SubKriteria } from '@/types/kriteria'
 
 /**
  * Mengambil semua kriteria beserta sub kriteria
@@ -147,3 +133,4 @@ export async function getKriteriaStats() {
     }
   }
 }
+

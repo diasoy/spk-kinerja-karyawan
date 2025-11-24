@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getAllKaryawan, type Karyawan } from '@/services/karyawan.service'
+import { getAllKaryawan } from '@/services/karyawan.service'
 
 export default async function Home() {
   const karyawanList = await getAllKaryawan()
@@ -47,14 +47,6 @@ export default async function Home() {
               {karyawanList.length > 0
                 ? (karyawanList.reduce((acc, k) => acc + k.nilaiKinerja, 0) / karyawanList.length).toFixed(1)
                 : 0}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Rata-rata Kehadiran</h3>
-            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">
-              {karyawanList.length > 0
-                ? (karyawanList.reduce((acc, k) => acc + k.kehadiran, 0) / karyawanList.length).toFixed(1)
-                : 0}%
             </p>
           </div>
         </div>
@@ -132,15 +124,6 @@ export default async function Home() {
                         }`}>
                           {karyawan.nilaiKinerja.toFixed(1)}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                        {karyawan.kehadiran.toFixed(1)}%
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                        {karyawan.produktivitas.toFixed(1)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                        {karyawan.kualitasKerja.toFixed(1)}
                       </td>
                     </tr>
                   ))}
