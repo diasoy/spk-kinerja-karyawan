@@ -18,8 +18,8 @@ import {
   UserX,
   Eye,
 } from "lucide-react";
-import { KaryawanFormDialog } from "@/components/karyawan-form-dialog";
-import { KaryawanDetailDialog } from "@/components/karyawan-detail-dialog";
+import { KaryawanFormDialog } from "@/components/karyawan/karyawan-form-dialog";
+import { KaryawanDetailDialog } from "@/components/karyawan/karyawan-detail-dialog";
 import { Karyawan } from "@/types/karyawan";
 import { Jabatan } from "@/types/jabatan";
 import Link from "next/link";

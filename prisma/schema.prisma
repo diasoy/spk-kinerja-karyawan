@@ -126,13 +126,12 @@ model Kriteria {
 model Subkriteria {
   id               Int                     @id @default(autoincrement())
   kriteriaId       Int
-  kriteria         Kriteria                @relation(fields: [kriteriaId], references: [id])
+  kriteria         Kriteria                @relation(fields: [kriteriaId], references: [id], onDelete: Cascade)
   kode             String
   nama             String
   deskripsi        String?
-  skalaMin         Int?                    // contoh: 1
-  skalaMax         Int?                    // contoh: 5
-  urutan           Int?
+  faktor           FaktorType              @default(CORE)  // CORE atau SECONDARY
+  nilaiStandar     Float                   @default(3)     // nilai standar/ideal, default 3, skala 1-5
 
   profileTarget    ProfileTarget?          @relation("SubkriteriaProfileTarget")
   ahpWeights       AhpBobotSubkriteria[]
@@ -153,10 +152,10 @@ model AhpMatrixKriteria {
   periode      PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
 
   kriteriaAId  Int
-  kriteriaA    Kriteria           @relation("CriteriaAsA", fields: [kriteriaAId], references: [id])
+  kriteriaA    Kriteria           @relation("CriteriaAsA", fields: [kriteriaAId], references: [id], onDelete: Cascade)
 
   kriteriaBId  Int
-  kriteriaB    Kriteria           @relation("CriteriaAsB", fields: [kriteriaBId], references: [id])
+  kriteriaB    Kriteria           @relation("CriteriaAsB", fields: [kriteriaBId], references: [id], onDelete: Cascade)
 
   nilai        Float              // nilai perbandingan A terhadap B
 
@@ -170,13 +169,13 @@ model AhpMatrixSubkriteria {
   periode         PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
 
   kriteriaId      Int
-  kriteria        Kriteria           @relation(fields: [kriteriaId], references: [id])
+  kriteria        Kriteria           @relation(fields: [kriteriaId], references: [id], onDelete: Cascade)
 
   subkriteriaAId  Int
-  subkriteriaA    Subkriteria        @relation("SubCriteriaAsA", fields: [subkriteriaAId], references: [id])
+  subkriteriaA    Subkriteria        @relation("SubCriteriaAsA", fields: [subkriteriaAId], references: [id], onDelete: Cascade)
 
   subkriteriaBId  Int
-  subkriteriaB    Subkriteria        @relation("SubCriteriaAsB", fields: [subkriteriaBId], references: [id])
+  subkriteriaB    Subkriteria        @relation("SubCriteriaAsB", fields: [subkriteriaBId], references: [id], onDelete: Cascade)
 
   nilai           Float
 
@@ -193,7 +192,7 @@ model AhpBobotKriteria {
   periode    PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
 
   kriteriaId Int
-  kriteria   Kriteria           @relation(fields: [kriteriaId], references: [id])
+  kriteria   Kriteria           @relation(fields: [kriteriaId], references: [id], onDelete: Cascade)
 
   bobot      Float              // eigenvector
   ci         Float?             // consistency index (opsional)
@@ -209,10 +208,10 @@ model AhpBobotSubkriteria {
   periode       PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
 
   kriteriaId    Int
-  kriteria      Kriteria           @relation(fields: [kriteriaId], references: [id])
+  kriteria      Kriteria           @relation(fields: [kriteriaId], references: [id], onDelete: Cascade)
 
   subkriteriaId Int
-  subkriteria   Subkriteria        @relation(fields: [subkriteriaId], references: [id])
+  subkriteria   Subkriteria        @relation(fields: [subkriteriaId], references: [id], onDelete: Cascade)
 
   bobot         Float
 
@@ -229,7 +228,7 @@ model ProfileTarget {
   periode       PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
 
   subkriteriaId Int @unique
-  subkriteria   Subkriteria        @relation("SubkriteriaProfileTarget", fields: [subkriteriaId], references: [id])
+  subkriteria   Subkriteria        @relation("SubkriteriaProfileTarget", fields: [subkriteriaId], references: [id], onDelete: Cascade)
 
   nilaiIdeal    Float              // nilai ideal subkriteria (misal 4 atau 5)
   faktor        FaktorType         // CORE / SECONDARY
@@ -245,7 +244,7 @@ model KriteriaProfileSetting {
   periode         PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
 
   kriteriaId      Int
-  kriteria        Kriteria           @relation(fields: [kriteriaId], references: [id])
+  kriteria        Kriteria           @relation(fields: [kriteriaId], references: [id], onDelete: Cascade)
 
   persenCore      Float              // contoh: 0.6
   persenSecondary Float              // contoh: 0.4
@@ -295,7 +294,7 @@ model PenilaianDetail {
   penilaian      Penilaian    @relation(fields: [penilaianId], references: [id])
 
   subkriteriaId  Int
-  subkriteria    Subkriteria  @relation(fields: [subkriteriaId], references: [id])
+  subkriteria    Subkriteria  @relation(fields: [subkriteriaId], references: [id], onDelete: Cascade)
 
   nilaiAktual    Float        // nilai 1–5
   gap            Float?       // nilaiAktual - nilaiIdeal
@@ -315,7 +314,7 @@ model HasilProfile {
   penilaian      Penilaian   @relation(fields: [penilaianId], references: [id])
 
   kriteriaId     Int
-  kriteria       Kriteria    @relation(fields: [kriteriaId], references: [id])
+  kriteria       Kriteria    @relation(fields: [kriteriaId], references: [id], onDelete: Cascade)
 
   ncf            Float?      // core factor
   nsf            Float?      // secondary factor

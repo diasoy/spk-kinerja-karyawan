@@ -9,7 +9,8 @@ import {
   Layers, 
   Trophy,
   ChevronRight,
-  LayoutDashboard
+  LayoutDashboard,
+  ListTree
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -26,6 +27,11 @@ const menuItems = [
   },
   {
     title: "Kriteria",
+    href: "/kriteria",
+    icon: ListTree
+  },
+  {
+    title: "Perbandingan",
     href: "/perbandingan-kriteria",
     icon: GitCompare
   },
