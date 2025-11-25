@@ -32,9 +32,9 @@ const menuItems = [
     icon: ListTree
   },
   {
-    title: "Penilaian",
-    href: "/penilaian",
-    icon: ChartLine
+    title: "Gap",
+    href: "/gap",
+    icon: TrendingDown
   },
   {
     title: "Perbandingan",
@@ -42,18 +42,13 @@ const menuItems = [
     icon: GitCompare
   },
   {
-    title: "Gap",
-    href: "/gap",
-    icon: TrendingDown
-  },
-  {
     title: "Aspek",
     href: "/aspek",
     icon: Layers
   },
   {
-    title: "Perangkingan",
-    href: "/perangkingan",
+    title: "Perankingan",
+    href: "/perankingan",
     icon: Trophy
   }
 ]

@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Users,
   Plus,
@@ -17,16 +20,25 @@ import {
   UserCheck,
   UserX,
   Eye,
+  ClipboardCheck,
 } from "lucide-react";
 import { KaryawanFormDialog } from "@/components/karyawan/karyawan-form-dialog";
 import { KaryawanDetailDialog } from "@/components/karyawan/karyawan-detail-dialog";
 import { Karyawan } from "@/types/karyawan";
 import { Jabatan } from "@/types/jabatan";
+import { Subkriteria } from "@/types/kriteria";
 import Link from "next/link";
+
+interface PenilaianData {
+  karyawanId: number
+  [subkriteriaId: string]: number | string
+}
 
 export default function DataAlternatifPage() {
   const [karyawanList, setKaryawanList] = useState<Karyawan[]>([]);
   const [jabatanList, setJabatanList] = useState<Jabatan[]>([]);
+  const [subkriteriaList, setSubkriteriaList] = useState<Subkriteria[]>([]);
+  const [penilaianData, setPenilaianData] = useState<PenilaianData[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -63,7 +75,89 @@ export default function DataAlternatifPage() {
   useEffect(() => {
     fetchKaryawan();
     fetchJabatan();
+    fetchSubkriteria();
   }, []);
+
+  const fetchSubkriteria = async () => {
+    try {
+      const response = await fetch("/api/subkriteria");
+      if (response.ok) {
+        const data = await response.json();
+        setSubkriteriaList(data);
+        
+        // Fetch existing penilaian data
+        const penilaianRes = await fetch("/api/penilaian/batch");
+        if (penilaianRes.ok) {
+          const penilaian = await penilaianRes.json();
+          
+          // Initialize penilaian data with existing values or defaults
+          const initialData = karyawanList.map((k) => {
+            const pData: PenilaianData = { karyawanId: k.id }
+            const karyawanPenilaian = penilaian.find((p: any) => p.karyawanId === k.id)
+            
+            data.forEach((sub: Subkriteria) => {
+              const detail = karyawanPenilaian?.detail.find((d: any) => d.subkriteriaId === sub.id)
+              pData[`sub_${sub.id}`] = detail?.nilaiAktual || sub.nilaiStandar || 3
+            })
+            return pData
+          })
+          setPenilaianData(initialData)
+        } else {
+          // Initialize with default values if no penilaian data exists
+          const initialData = karyawanList.map((k) => {
+            const pData: PenilaianData = { karyawanId: k.id }
+            data.forEach((sub: Subkriteria) => {
+              pData[`sub_${sub.id}`] = sub.nilaiStandar || 3
+            })
+            return pData
+          })
+          setPenilaianData(initialData)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching subkriteria:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (karyawanList.length > 0 && subkriteriaList.length > 0) {
+      fetchPenilaianData()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [karyawanList, subkriteriaList]);
+
+  const fetchPenilaianData = async () => {
+    try {
+      const penilaianRes = await fetch("/api/penilaian/batch");
+      if (penilaianRes.ok) {
+        const penilaian = await penilaianRes.json();
+        
+        const initialData = karyawanList.map((k) => {
+          const pData: PenilaianData = { karyawanId: k.id }
+          const karyawanPenilaian = penilaian.find((p: { karyawanId: number }) => p.karyawanId === k.id)
+          
+          subkriteriaList.forEach((sub) => {
+            const detail = karyawanPenilaian?.detail.find((d: { subkriteriaId: number; nilaiAktual: number }) => d.subkriteriaId === sub.id)
+            pData[`sub_${sub.id}`] = detail?.nilaiAktual || sub.nilaiStandar || 3
+          })
+          return pData
+        })
+        setPenilaianData(initialData)
+      } else {
+        // Initialize with default values if no penilaian data exists
+        const initialData = karyawanList.map((k) => {
+          const pData: PenilaianData = { karyawanId: k.id }
+          subkriteriaList.forEach((sub) => {
+            pData[`sub_${sub.id}`] = sub.nilaiStandar || 3
+          })
+          return pData
+        })
+        setPenilaianData(initialData)
+      }
+    } catch (error) {
+      console.error("Error fetching penilaian data:", error);
+    }
+  }
 
   const handleAdd = () => {
     setSelectedKaryawan(null);
@@ -99,6 +193,19 @@ export default function DataAlternatifPage() {
     }
   };
 
+  // Group subkriteria by kriteria
+  const groupedSubkriteria = subkriteriaList.reduce((acc, sub) => {
+    const kriteriaKey = sub.kriteria?.kode || "Unknown"
+    if (!acc[kriteriaKey]) {
+      acc[kriteriaKey] = {
+        nama: sub.kriteria?.nama || "Unknown",
+        subkriteria: []
+      }
+    }
+    acc[kriteriaKey].subkriteria.push(sub)
+    return acc
+  }, {} as Record<string, { nama: string; subkriteria: Subkriteria[] }>)
+
   const formatDate = (date: string | null) => {
     if (!date) return "-";
     return new Date(date).toLocaleDateString("id-ID", {
@@ -132,12 +239,6 @@ export default function DataAlternatifPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/data-alternatif/penilaian">
-              <Button className="gap-2 bg-green-600 text-white hover:bg-green-700">
-                <Pencil className="h-4 w-4" />
-                Penilaian Karyawan
-              </Button>
-            </Link>
             <Button onClick={handleAdd} className="gap-2">
               <Plus className="h-4 w-4" />
               Tambah Karyawan
@@ -280,6 +381,126 @@ export default function DataAlternatifPage() {
               </table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Tabel Penilaian */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-3">
+                <ClipboardCheck className="h-6 w-6" />
+                Penilaian Karyawan
+              </CardTitle>
+              <CardDescription>
+                Nilai karyawan untuk setiap subkriteria (Skala 1-5) - Readonly
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Link href="/gap">
+                <Button variant="outline" className="gap-2">
+                  <ClipboardCheck className="h-4 w-4" />
+                  Isi Penilaian
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-gray-600 mb-4">
+            {karyawanList.length} karyawan × {subkriteriaList.length} subkriteria
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b-2 border-gray-300">
+                  <th className="border-r-2 border-gray-300 px-4 py-3 text-left font-semibold w-24 bg-white">
+                    Kode
+                  </th>
+                  <th className="border-r-2 border-gray-300 px-4 py-3 text-left font-semibold min-w-[200px] bg-white">
+                    Nama Karyawan
+                  </th>
+                  {Object.entries(groupedSubkriteria).map(([kriteriaKode, { nama, subkriteria }]) => (
+                    <th
+                      key={kriteriaKode}
+                      colSpan={subkriteria.length}
+                      className="border-r border-gray-300 px-4 py-2 text-center font-semibold bg-gray-50"
+                    >
+                      {nama}
+                    </th>
+                  ))}
+                </tr>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="border-r-2 border-gray-300 bg-gray-50"></th>
+                  <th className="border-r-2 border-gray-300 bg-gray-50"></th>
+                  {subkriteriaList.map((sub) => (
+                    <th
+                      key={sub.id}
+                      className="border-r border-gray-200 px-2 py-3 text-xs font-medium text-center"
+                      title={sub.nama}
+                      style={{ minWidth: '120px' }}
+                    >
+                      <div className="flex flex-col items-center gap-1.5">
+                        <span className="font-semibold text-center leading-tight block">
+                          {sub.nama}
+                        </span>
+                        <div className="flex items-center gap-1.5 justify-center">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap ${
+                            sub.faktor === 'CORE' 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-green-100 text-green-700'
+                          }`}>
+                            {sub.faktor === 'CORE' ? 'C' : 'S'}
+                          </span>
+                          <span className="text-gray-500 text-[10px] whitespace-nowrap">
+                            Std: {sub.nilaiStandar}
+                          </span>
+                        </div>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {penilaianData.map((data, index) => {
+                  const karyawan = karyawanList.find(k => k.id === data.karyawanId)
+                  return (
+                    <tr
+                      key={data.karyawanId}
+                      className={`border-b border-gray-200 hover:bg-gray-50 ${
+                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                      }`}
+                    >
+                      <td className="border-r-2 border-gray-300 px-4 py-2 font-medium bg-inherit">
+                        {karyawan?.kode}
+                      </td>
+                      <td className="border-r-2 border-gray-300 px-4 py-2 bg-inherit">
+                        {karyawan?.nama || "-"}
+                      </td>
+                      {subkriteriaList.map((sub) => (
+                        <td
+                          key={sub.id}
+                          className="border-r border-gray-200 px-2 py-2 text-center"
+                          style={{ minWidth: '120px' }}
+                        >
+                          <Input
+                            type="number"
+                            min="1"
+                            max="5"
+                            step="0.1"
+                            value={data[`sub_${sub.id}`] || sub.nilaiStandar}
+                            readOnly
+                            className="w-full text-center h-8 px-2 bg-gray-50 cursor-not-allowed"
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
 

@@ -4,8 +4,8 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Layers, Plus, Pencil, Trash2 } from "lucide-react"
-import { KriteriaFormDialog } from "@/components/kriteria-form-dialog"
-import { SubkriteriaFormDialog } from "@/components/subkriteria-form-dialog"
+import { KriteriaFormDialog } from "@/components/kriteria/kriteria-form-dialog"
+import { SubkriteriaFormDialog } from "@/components/kriteria/subkriteria-form-dialog"
 import { Kriteria, Subkriteria } from "@/types/kriteria"
 
 export default function KriteriaPage() {

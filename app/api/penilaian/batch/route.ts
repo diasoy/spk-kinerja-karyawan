@@ -4,13 +4,33 @@ import { NextResponse } from 'next/server'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { penilaianData, periodeId = 1 } = body
+    const { penilaianData } = body
 
     if (!penilaianData || !Array.isArray(penilaianData)) {
       return NextResponse.json({ 
         error: 'Data penilaian tidak valid' 
       }, { status: 400 })
     }
+
+    // Get or create default periode
+    let periode = await prisma.periodePenilaian.findFirst({
+      orderBy: {
+        id: 'desc'
+      }
+    })
+
+    if (!periode) {
+      // Create default periode if none exists
+      periode = await prisma.periodePenilaian.create({
+        data: {
+          nama: 'Periode Default 2025',
+          tanggalMulai: new Date(),
+          tanggalSelesai: null
+        }
+      })
+    }
+
+    const periodeId = periode.id
 
     // Process each karyawan's penilaian
     const results = []
