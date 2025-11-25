@@ -1,143 +1,138 @@
-import Link from 'next/link'
-import { getAllKaryawan } from '@/services/karyawan.service'
+"use client"
 
-export default async function Home() {
-  const karyawanList = await getAllKaryawan()
+import { useEffect, useRef } from "react"
+import { gsap } from "gsap"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Users, GitCompare, TrendingDown, Layers, Trophy, Activity } from "lucide-react"
+
+const stats = [
+  {
+    title: "Total Karyawan",
+    value: "0",
+    icon: Users,
+    color: "from-blue-500 to-blue-600"
+  },
+  {
+    title: "Kriteria",
+    value: "0",
+    icon: GitCompare,
+    color: "from-violet-500 to-violet-600"
+  },
+  {
+    title: "Aspek",
+    value: "0",
+    icon: Layers,
+    color: "from-pink-500 to-pink-600"
+  },
+  {
+    title: "Perangkingan",
+    value: "0",
+    icon: Trophy,
+    color: "from-amber-500 to-amber-600"
+  }
+]
+
+export default function Home() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const cardsRef = useRef<(HTMLDivElement | null)[]>([])
+
+  useEffect(() => {
+    if (containerRef.current) {
+      gsap.from(containerRef.current.querySelector("h1"), {
+        y: -30,
+        opacity: 0,
+        duration: 0.6,
+        ease: "power3.out"
+      })
+    }
+
+    cardsRef.current.forEach((card, index) => {
+      if (card) {
+        gsap.from(card, {
+          y: 50,
+          opacity: 0,
+          duration: 0.5,
+          delay: 0.1 + index * 0.1,
+          ease: "power2.out"
+        })
+      }
+    })
+  }, [])
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4">
-      <main className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Sistem Pendukung Keputusan
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            Penilaian Kinerja Karyawan
-          </p>
-        </div>
+    <div ref={containerRef} className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight from-blue-600 to-violet-600 bg-clip-text text-transparent">
+          Dashboard
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Sistem Pendukung Keputusan Penilaian Kinerja Karyawan
+        </p>
+      </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-center gap-4 mb-8">
-          <Link
-            href="/karyawan"
-            className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md transition-colors"
-          >
-            👥 Kelola Data Karyawan
-          </Link>
-          <Link
-            href="/kriteria"
-            className="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition-colors"
-          >
-            📋 Lihat Kriteria Penilaian
-          </Link>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat, index) => {
+          const Icon = stat.icon
+          return (
+            <Card 
+              key={stat.title}
+              ref={(el) => { cardsRef.current[index] = el }}
+              className="overflow-hidden hover:shadow-lg transition-shadow duration-300"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {stat.title}
+                </CardTitle>
+                <div className={`rounded-lg ${stat.color} p-2`}>
+                  <Icon className="h-4 w-4 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Data terkini
+                </p>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Karyawan</h3>
-            <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">
-              {karyawanList.length}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Rata-rata Kinerja</h3>
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">
-              {karyawanList.length > 0
-                ? (karyawanList.reduce((acc, k) => acc + k.nilaiKinerja, 0) / karyawanList.length).toFixed(1)
-                : 0}
-            </p>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Data Karyawan
-            </h2>
-          </div>
-          
-          {karyawanList.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                Belum ada data karyawan. Jalankan migrasi database terlebih dahulu.
-              </p>
-              <code className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded text-sm">
-                npx prisma migrate dev --name init
-              </code>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Aktivitas Terkini
+            </CardTitle>
+            <CardDescription>
+              Ringkasan aktivitas sistem
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-muted-foreground">
+              Belum ada aktivitas
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      NIP
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Nama
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Jabatan
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Departemen
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Nilai Kinerja
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Kehadiran
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Produktivitas
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Kualitas
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {karyawanList.map((karyawan) => (
-                    <tr key={karyawan.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        {karyawan.nip}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {karyawan.nama}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                        {karyawan.jabatan}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                        {karyawan.departemen}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          karyawan.nilaiKinerja >= 85
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : karyawan.nilaiKinerja >= 70
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                        }`}>
-                          {karyawan.nilaiKinerja.toFixed(1)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Footer Info */}
-        <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-          <p>Data diurutkan berdasarkan nilai kinerja tertinggi</p>
-        </div>
-      </main>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Peringkat Teratas
+            </CardTitle>
+            <CardDescription>
+              Karyawan dengan kinerja terbaik
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-muted-foreground">
+              Data belum tersedia
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
