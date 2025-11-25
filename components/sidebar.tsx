@@ -10,7 +10,8 @@ import {
   Trophy,
   ChevronRight,
   LayoutDashboard,
-  ListTree
+  ListTree,
+  ChartLine
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -29,6 +30,11 @@ const menuItems = [
     title: "Kriteria",
     href: "/kriteria",
     icon: ListTree
+  },
+  {
+    title: "Penilaian",
+    href: "/penilaian",
+    icon: ChartLine
   },
   {
     title: "Perbandingan",
