@@ -2,8 +2,6 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useRef } from "react"
-import { gsap } from "gsap"
 import { 
   Users, 
   GitCompare, 
@@ -27,7 +25,7 @@ const menuItems = [
     icon: Users
   },
   {
-    title: "Perbandingan Kriteria",
+    title: "Kriteria",
     href: "/perbandingan-kriteria",
     icon: GitCompare
   },
@@ -50,46 +48,20 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const sidebarRef = useRef<HTMLDivElement>(null)
-  const menuItemsRef = useRef<(HTMLAnchorElement | null)[]>([])
-
-  useEffect(() => {
-    if (sidebarRef.current) {
-      gsap.from(sidebarRef.current, {
-        x: -300,
-        opacity: 0,
-        duration: 0.6,
-        ease: "power3.out"
-      })
-    }
-
-    menuItemsRef.current.forEach((item, index) => {
-      if (item) {
-        gsap.from(item, {
-          x: -50,
-          opacity: 0,
-          duration: 0.4,
-          delay: 0.1 + index * 0.05,
-          ease: "power2.out"
-        })
-      }
-    })
-  }, [])
 
   return (
     <div
-      ref={sidebarRef}
-      className="flex h-screen w-64 flex-col border-r bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900"
+      className="flex h-screen w-64 flex-col border-r bg-white shadow-lg"
     >
       {/* Header */}
-      <div className="flex h-16 items-center border-b px-6">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-          SPK Kinerja
+      <div className="flex h-16 items-center border-b px-6 bg-gradient-to-r from-blue-600 to-violet-600">
+        <h1 className="text-lg font-bold text-white">
+          SPK Kinerja Karyawan
         </h1>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-4">
+      <nav className="flex-1 space-y-1 p-4 bg-slate-50">
         {menuItems.map((item, index) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -98,35 +70,16 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              ref={(el) => { menuItemsRef.current[index] = el }}
               className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-blue-50 dark:hover:bg-slate-800",
+                "group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-md"
-                  : "text-slate-700 dark:text-slate-300"
+                  ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-md"
+                  : "text-slate-700 hover:bg-white hover:shadow-sm"
               )}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  gsap.to(e.currentTarget, {
-                    x: 4,
-                    duration: 0.2,
-                    ease: "power2.out"
-                  })
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  gsap.to(e.currentTarget, {
-                    x: 0,
-                    duration: 0.2,
-                    ease: "power2.out"
-                  })
-                }
-              }}
             >
               <Icon className={cn(
                 "h-5 w-5 transition-transform",
-                isActive ? "text-white" : "text-slate-500 group-hover:text-blue-600"
+                isActive ? "text-white" : "text-slate-600 group-hover:text-blue-600"
               )} />
               <span className="flex-1">{item.title}</span>
               {isActive && (
@@ -138,12 +91,12 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t p-4">
-        <div className="rounded-lg bg-gradient-to-br from-blue-50 to-violet-50 dark:from-slate-800 dark:to-slate-900 p-3">
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+      <div className="border-t p-4 bg-slate-50">
+        <div className="rounded-lg bg-gradient-to-br from-blue-50 to-violet-50 p-4 border border-blue-200">
+          <p className="text-xs font-semibold text-slate-700">
             Sistem Pendukung Keputusan
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+          <p className="text-xs text-slate-600 mt-1">
             Penilaian Kinerja Karyawan
           </p>
         </div>

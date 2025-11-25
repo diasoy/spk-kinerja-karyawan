@@ -1,9 +1,7 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import { gsap } from "gsap"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, GitCompare, TrendingDown, Layers, Trophy, Activity } from "lucide-react"
+import { Users, GitCompare, Layers, Trophy, Activity } from "lucide-react"
 
 const stats = [
   {
@@ -33,63 +31,36 @@ const stats = [
 ]
 
 export default function Home() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const cardsRef = useRef<(HTMLDivElement | null)[]>([])
-
-  useEffect(() => {
-    if (containerRef.current) {
-      gsap.from(containerRef.current.querySelector("h1"), {
-        y: -30,
-        opacity: 0,
-        duration: 0.6,
-        ease: "power3.out"
-      })
-    }
-
-    cardsRef.current.forEach((card, index) => {
-      if (card) {
-        gsap.from(card, {
-          y: 50,
-          opacity: 0,
-          duration: 0.5,
-          delay: 0.1 + index * 0.1,
-          ease: "power2.out"
-        })
-      }
-    })
-  }, [])
-
   return (
-    <div ref={containerRef} className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight from-blue-600 to-violet-600 bg-clip-text text-transparent">
+    <div className="space-y-8">
+      <div className="border-b pb-6">
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900">
           Dashboard
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-gray-600 mt-2 text-lg">
           Sistem Pendukung Keputusan Penilaian Kinerja Karyawan
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => {
           const Icon = stat.icon
           return (
             <Card 
               key={stat.title}
-              ref={(el) => { cardsRef.current[index] = el }}
-              className="overflow-hidden hover:shadow-lg transition-shadow duration-300"
+              className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 bg-white"
             >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   {stat.title}
                 </CardTitle>
-                <div className={`rounded-lg ${stat.color} p-2`}>
-                  <Icon className="h-4 w-4 text-white" />
+                <div className={`rounded-xl bg-gradient-to-br ${stat.color} p-3 shadow-lg`}>
+                  <Icon className="h-5 w-5 text-white" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
+                <p className="text-sm text-gray-500 mt-2 font-medium">
                   Data terkini
                 </p>
               </CardContent>
@@ -98,36 +69,40 @@ export default function Home() {
         })}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-2 bg-white">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-3 text-xl text-gray-900">
+              <div className="p-2 rounded-lg bg-blue-100">
+                <Activity className="h-5 w-5 text-blue-600" />
+              </div>
               Aktivitas Terkini
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base text-gray-600">
               Ringkasan aktivitas sistem
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
               Belum ada aktivitas
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-2 bg-white">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-3 text-xl text-gray-900">
+              <div className="p-2 rounded-lg bg-amber-100">
+                <Trophy className="h-5 w-5 text-amber-600" />
+              </div>
               Peringkat Teratas
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base text-gray-600">
               Karyawan dengan kinerja terbaik
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
               Data belum tersedia
             </div>
           </CardContent>

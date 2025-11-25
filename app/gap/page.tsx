@@ -1,48 +1,35 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import { gsap } from "gsap"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingDown } from "lucide-react"
 
 export default function GapPage() {
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (containerRef.current) {
-      gsap.from(containerRef.current.children, {
-        y: 30,
-        opacity: 0,
-        duration: 0.6,
-        stagger: 0.1,
-        ease: "power3.out"
-      })
-    }
-  }, [])
 
   return (
-    <div ref={containerRef} className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+    <div className="space-y-8">
+      <div className="border-b pb-6">
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900">
           Gap
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-gray-600 mt-2 text-lg">
           Analisis gap antara nilai profil dengan nilai karyawan
         </p>
       </div>
 
-      <Card>
+      <Card className="border-2 bg-white">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingDown className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-3 text-xl text-gray-900">
+            <div className="p-2 rounded-lg bg-red-100">
+              <TrendingDown className="h-5 w-5 text-red-600" />
+            </div>
             Perhitungan Gap
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base text-gray-600">
             Selisih nilai karyawan dengan profil ideal
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
             Data perhitungan gap belum tersedia.
           </div>
         </CardContent>

@@ -8,3 +8,331 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+
+// ====================
+// ENUM
+// ====================
+enum JenisKelamin {
+  L
+  P
+}
+
+enum StatusKaryawan {
+  TETAP
+  KONTRAK
+  MAGANG
+  PROBATION
+}
+
+enum FaktorType {
+  CORE
+  SECONDARY
+}
+
+// ====================
+// MASTER ORGANISASI
+// ====================
+model Departemen {
+  id        Int        @id @default(autoincrement())
+  nama      String
+
+  jabatan   Jabatan[]
+
+  @@map("tb_departemen")
+}
+
+model Jabatan {
+  id            Int         @id @default(autoincrement())
+  nama          String
+  departemenId  Int?
+  departemen    Departemen? @relation(fields: [departemenId], references: [id])
+
+  karyawan      Karyawan[]
+
+  @@map("tb_jabatan")
+}
+
+// ====================
+// MASTER KARYAWAN
+// ====================
+model Karyawan {
+  id                 Int              @id @default(autoincrement())
+  kode               String           @unique          // isi dengan kode karyawan, misal A01, A02
+  nama               String?
+  jenisKelamin       JenisKelamin?
+  tanggalLahir       DateTime?
+  jabatanId          Int?
+  jabatan            Jabatan?         @relation(fields: [jabatanId], references: [id])
+
+  status             StatusKaryawan?
+  tanggalMasuk       DateTime?
+  tanggalKeluar      DateTime?
+  isAktif            Boolean          @default(true)
+
+  noHp               String?
+  email              String?
+  alamat             String?
+  pendidikanTerakhir String?
+  catatan            String?
+
+  penilaian          Penilaian[]
+
+  @@map("tb_karyawan")
+}
+
+// ====================
+// PERIODE PENILAIAN
+// ====================
+model PeriodePenilaian {
+  id             Int                     @id @default(autoincrement())
+  nama           String                  // contoh: "Penilaian Tahunan 2025"
+  tanggalMulai   DateTime?
+  tanggalSelesai DateTime?
+
+  penilaian           Penilaian[]
+  ahpKriteria         AhpMatrixKriteria[]
+  ahpSubkriteria      AhpMatrixSubkriteria[]
+  ahpBobotKriteria    AhpBobotKriteria[]
+  ahpBobotSubkriteria AhpBobotSubkriteria[]
+  profileTarget       ProfileTarget[]
+  profileKriteria     KriteriaProfileSetting[]
+
+  @@map("tb_periode_penilaian")
+}
+
+// ====================
+// KRITERIA & SUBKRITERIA
+// ====================
+model Kriteria {
+  id             Int                   @id @default(autoincrement())
+  kode           String                @unique
+  nama           String
+  deskripsi      String?
+  urutan         Int?
+
+  subkriteria    Subkriteria[]
+  ahpWeights     AhpBobotKriteria[]
+  ahpMatrixAsA   AhpMatrixKriteria[]   @relation("CriteriaAsA")
+  ahpMatrixAsB   AhpMatrixKriteria[]   @relation("CriteriaAsB")
+  hasilProfile   HasilProfile[]
+  profileSetting KriteriaProfileSetting[]
+
+  @@map("tb_kriteria")
+  ahpMatrixSubkriterias AhpMatrixSubkriteria[]
+  ahpBobotSubkriterias AhpBobotSubkriteria[]
+}
+
+model Subkriteria {
+  id               Int                     @id @default(autoincrement())
+  kriteriaId       Int
+  kriteria         Kriteria                @relation(fields: [kriteriaId], references: [id])
+  kode             String
+  nama             String
+  deskripsi        String?
+  skalaMin         Int?                    // contoh: 1
+  skalaMax         Int?                    // contoh: 5
+  urutan           Int?
+
+  profileTarget    ProfileTarget?          @relation("SubkriteriaProfileTarget")
+  ahpWeights       AhpBobotSubkriteria[]
+  ahpMatrixAsA     AhpMatrixSubkriteria[]  @relation("SubCriteriaAsA")
+  ahpMatrixAsB     AhpMatrixSubkriteria[]  @relation("SubCriteriaAsB")
+  penilaianDetail  PenilaianDetail[]
+
+  @@unique([kriteriaId, kode])
+  @@map("tb_subkriteria")
+}
+
+// ====================
+// AHP - MATRIX PERBANDINGAN
+// ====================
+model AhpMatrixKriteria {
+  id           Int                @id @default(autoincrement())
+  periodeId    Int?
+  periode      PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
+
+  kriteriaAId  Int
+  kriteriaA    Kriteria           @relation("CriteriaAsA", fields: [kriteriaAId], references: [id])
+
+  kriteriaBId  Int
+  kriteriaB    Kriteria           @relation("CriteriaAsB", fields: [kriteriaBId], references: [id])
+
+  nilai        Float              // nilai perbandingan A terhadap B
+
+  @@unique([periodeId, kriteriaAId, kriteriaBId])
+  @@map("tb_ahp_matrix_kriteria")
+}
+
+model AhpMatrixSubkriteria {
+  id              Int                @id @default(autoincrement())
+  periodeId       Int?
+  periode         PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
+
+  kriteriaId      Int
+  kriteria        Kriteria           @relation(fields: [kriteriaId], references: [id])
+
+  subkriteriaAId  Int
+  subkriteriaA    Subkriteria        @relation("SubCriteriaAsA", fields: [subkriteriaAId], references: [id])
+
+  subkriteriaBId  Int
+  subkriteriaB    Subkriteria        @relation("SubCriteriaAsB", fields: [subkriteriaBId], references: [id])
+
+  nilai           Float
+
+  @@unique([periodeId, kriteriaId, subkriteriaAId, subkriteriaBId])
+  @@map("tb_ahp_matrix_subkriteria")
+}
+
+// ====================
+// AHP - BOBOT KRITERIA & SUBKRITERIA
+// ====================
+model AhpBobotKriteria {
+  id         Int                @id @default(autoincrement())
+  periodeId  Int?
+  periode    PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
+
+  kriteriaId Int
+  kriteria   Kriteria           @relation(fields: [kriteriaId], references: [id])
+
+  bobot      Float              // eigenvector
+  ci         Float?             // consistency index (opsional)
+  cr         Float?             // consistency ratio (opsional)
+
+  @@unique([periodeId, kriteriaId])
+  @@map("tb_ahp_bobot_kriteria")
+}
+
+model AhpBobotSubkriteria {
+  id            Int                @id @default(autoincrement())
+  periodeId     Int?
+  periode       PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
+
+  kriteriaId    Int
+  kriteria      Kriteria           @relation(fields: [kriteriaId], references: [id])
+
+  subkriteriaId Int
+  subkriteria   Subkriteria        @relation(fields: [subkriteriaId], references: [id])
+
+  bobot         Float
+
+  @@unique([periodeId, subkriteriaId])
+  @@map("tb_ahp_bobot_subkriteria")
+}
+
+// ====================
+// PROFILE MATCHING - TARGET & GAP
+// ====================
+model ProfileTarget {
+  id            Int                @id @default(autoincrement())
+  periodeId     Int?
+  periode       PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
+
+  subkriteriaId Int @unique
+  subkriteria   Subkriteria        @relation("SubkriteriaProfileTarget", fields: [subkriteriaId], references: [id])
+
+  nilaiIdeal    Float              // nilai ideal subkriteria (misal 4 atau 5)
+  faktor        FaktorType         // CORE / SECONDARY
+  bobotFaktor   Float?             // bobot internal dalam kelompoknya (opsional)
+
+  @@unique([periodeId, subkriteriaId])
+  @@map("tb_profile_target")
+}
+
+model KriteriaProfileSetting {
+  id              Int                @id @default(autoincrement())
+  periodeId       Int?
+  periode         PeriodePenilaian?  @relation(fields: [periodeId], references: [id])
+
+  kriteriaId      Int
+  kriteria        Kriteria           @relation(fields: [kriteriaId], references: [id])
+
+  persenCore      Float              // contoh: 0.6
+  persenSecondary Float              // contoh: 0.4
+
+  @@unique([periodeId, kriteriaId])
+  @@map("tb_profile_kriteria_setting")
+}
+
+// Mapping GAP → Bobot (global)
+model GapBobot {
+  id        Int     @id @default(autoincrement())
+  nilaiGap  Int     // contoh: -3..3
+  bobot     Float   // contoh: 5.0, 4.5, dst
+  deskripsi String?
+  aktif     Boolean @default(true)
+
+  @@unique([nilaiGap])
+  @@map("tb_gap_bobot")
+}
+
+// ====================
+// PENILAIAN KARYAWAN (HEADER & DETAIL)
+// ====================
+model Penilaian {
+  id               Int               @id @default(autoincrement())
+  karyawanId       Int
+  karyawan         Karyawan          @relation(fields: [karyawanId], references: [id])
+
+  periodeId        Int
+  periode          PeriodePenilaian  @relation(fields: [periodeId], references: [id])
+
+  tanggalPenilaian DateTime          @default(now())
+  penilai          String?           // nama atasan/HRD
+  catatan          String?
+
+  detail           PenilaianDetail[]
+  hasilProfile     HasilProfile[]
+  hasilAkhir       HasilAkhir?
+
+  @@unique([karyawanId, periodeId]) // satu penilaian per karyawan per periode
+  @@map("tb_penilaian")
+}
+
+model PenilaianDetail {
+  id             Int          @id @default(autoincrement())
+  penilaianId    Int
+  penilaian      Penilaian    @relation(fields: [penilaianId], references: [id])
+
+  subkriteriaId  Int
+  subkriteria    Subkriteria  @relation(fields: [subkriteriaId], references: [id])
+
+  nilaiAktual    Float        // nilai 1–5
+  gap            Float?       // nilaiAktual - nilaiIdeal
+  bobotGap       Float?       // hasil konversi dari GapBobot
+
+  @@unique([penilaianId, subkriteriaId])
+  @@map("tb_penilaian_detail")
+}
+
+// ====================
+// HASIL PROFILE MATCHING & SKOR AKHIR
+// ====================
+// per kriteria per penilaian
+model HasilProfile {
+  id             Int         @id @default(autoincrement())
+  penilaianId    Int
+  penilaian      Penilaian   @relation(fields: [penilaianId], references: [id])
+
+  kriteriaId     Int
+  kriteria       Kriteria    @relation(fields: [kriteriaId], references: [id])
+
+  ncf            Float?      // core factor
+  nsf            Float?      // secondary factor
+  nilaiKriteria  Float?      // gabungan (ncf & nsf)
+
+  @@unique([penilaianId, kriteriaId])
+  @@map("tb_hasil_profile")
+}
+
+// skor gabungan semua kriteria untuk 1 penilaian (1 karyawan 1 periode)
+model HasilAkhir {
+  id          Int        @id @default(autoincrement())
+  penilaianId Int        @unique
+  penilaian   Penilaian  @relation(fields: [penilaianId], references: [id])
+
+  skorTotal   Float      // Σ (bobot_kriteria * nilaiKriteria)
+  peringkat   Int?       // bisa diisi saat proses ranking
+
+  @@map("tb_hasil_akhir")
+}
