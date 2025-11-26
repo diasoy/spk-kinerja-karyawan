@@ -110,13 +110,37 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
+    const karyawanId = parseInt(id)
+
+    // Get all penilaian for this karyawan
+    const penilaianList = await prisma.penilaian.findMany({
+      where: { karyawanId: karyawanId },
+      select: { id: true }
+    })
+
+    // Delete all penilaian details first
+    for (const penilaian of penilaianList) {
+      await prisma.penilaianDetail.deleteMany({
+        where: { penilaianId: penilaian.id }
+      })
+    }
+
+    // Then delete penilaian records
+    await prisma.penilaian.deleteMany({
+      where: { karyawanId: karyawanId }
+    })
+
+    // Finally delete karyawan
     await prisma.karyawan.delete({
-      where: { id: parseInt(id) }
+      where: { id: karyawanId }
     })
     
     return NextResponse.json({ message: 'Karyawan deleted successfully' })
   } catch (error) {
     console.error('Error deleting karyawan:', error)
-    return NextResponse.json({ error: 'Failed to delete karyawan' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Failed to delete karyawan',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }

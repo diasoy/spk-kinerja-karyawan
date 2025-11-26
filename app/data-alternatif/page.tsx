@@ -21,6 +21,8 @@ import {
   UserX,
   Eye,
   ClipboardCheck,
+  Upload,
+  Download,
 } from "lucide-react";
 import { KaryawanFormDialog } from "@/components/karyawan/karyawan-form-dialog";
 import { KaryawanDetailDialog } from "@/components/karyawan/karyawan-detail-dialog";
@@ -40,6 +42,7 @@ export default function DataAlternatifPage() {
   const [subkriteriaList, setSubkriteriaList] = useState<Subkriteria[]>([]);
   const [penilaianData, setPenilaianData] = useState<PenilaianData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedKaryawan, setSelectedKaryawan] = useState<Karyawan | null>(
@@ -123,8 +126,239 @@ export default function DataAlternatifPage() {
     if (karyawanList.length > 0 && subkriteriaList.length > 0) {
       fetchPenilaianData()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [karyawanList, subkriteriaList]);
+
+  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setImporting(true)
+    try {
+      // Re-fetch data to ensure we have the latest
+      const [karyawanRes, subkriteriaRes, jabatanRes] = await Promise.all([
+        fetch("/api/karyawan"),
+        fetch("/api/subkriteria"),
+        fetch("/api/jabatan")
+      ])
+
+      const freshKaryawan = await karyawanRes.json()
+      const freshSubkriteria = await subkriteriaRes.json()
+      const freshJabatan = await jabatanRes.json()
+
+      console.log('=== IMPORT DEBUG ===')
+      console.log('Fresh karyawan count:', freshKaryawan.length)
+      console.log('Fresh subkriteria count:', freshSubkriteria.length)
+
+      if (freshSubkriteria.length === 0) {
+        alert('Belum ada data subkriteria! Silakan setup kriteria terlebih dahulu.')
+        return
+      }
+
+      const text = await file.text()
+      // Handle different line endings (Windows \r\n, Unix \n, Mac \r)
+      const lines = text.split(/\r?\n/).filter(line => line.trim())
+      
+      if (lines.length < 2) {
+        alert('File CSV kosong atau hanya memiliki header!')
+        return
+      }
+
+      // Parse CSV header
+      const headers = lines[0].split(',').map(h => h.trim())
+      
+      console.log('CSV Headers:', headers)
+      console.log('Total subkriteria:', freshSubkriteria.length)
+      
+      // Sort subkriteria by kriteria urutan and kode for consistent ordering
+      const sortedSubkriteria = [...freshSubkriteria].sort((a, b) => {
+        const urA = a.kriteria?.urutan || 0
+        const urB = b.kriteria?.urutan || 0
+        if (urA !== urB) return urA - urB
+        return a.id - b.id
+      })
+      
+      console.log('Subkriteria order:', sortedSubkriteria.map(s => `${s.id}: ${s.kriteria?.kode}_${s.kode}`).join(', '))
+      
+      // Create a map of karyawan by code for quick lookup
+      const karyawanMap = new Map<string, Karyawan>(freshKaryawan.map((k: Karyawan) => [k.kode.toLowerCase(), k]))
+      
+      // Process import data
+      const importData: PenilaianData[] = []
+      const skippedRows: string[] = []
+      const newKaryawanCodes: string[] = []
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim())
+        
+        // First column is karyawan code
+        const karyawanCode = values[0]?.trim()
+        if (!karyawanCode) {
+          skippedRows.push(`Baris ${i + 1}: Kode karyawan kosong`)
+          continue
+        }
+
+        console.log(`\n--- Row ${i + 1}: ${karyawanCode} ---`)
+        
+        // Check if karyawan exists
+        let karyawan = karyawanMap.get(karyawanCode.toLowerCase())
+        
+        // If karyawan doesn't exist, create it
+        if (!karyawan) {
+          console.log(`Creating new karyawan: ${karyawanCode}`)
+          
+          const defaultJabatan = freshJabatan.length > 0 ? freshJabatan[0] : null
+          
+          const createResponse = await fetch("/api/karyawan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              kode: karyawanCode,
+              nama: karyawanCode,
+              jabatanId: defaultJabatan?.id || null,
+              status: "TETAP",
+              isAktif: true
+            })
+          })
+          
+          if (createResponse.ok) {
+            const newKaryawan = await createResponse.json()
+            karyawanMap.set(karyawanCode.toLowerCase(), newKaryawan)
+            newKaryawanCodes.push(karyawanCode)
+            karyawan = newKaryawan
+            console.log(`Created karyawan ID: ${newKaryawan.id}`)
+          } else {
+            const error = await createResponse.json()
+            console.error(`Failed to create karyawan ${karyawanCode}:`, error)
+            skippedRows.push(`Baris ${i + 1}: Gagal membuat karyawan ${karyawanCode}`)
+            continue
+          }
+        }
+
+        if (!karyawan) {
+          skippedRows.push(`Baris ${i + 1}: Karyawan ${karyawanCode} tidak dapat diproses`)
+          continue
+        }
+
+        const pData: PenilaianData = {
+          karyawanId: karyawan.id
+        }
+
+        // Map values by position (column 1 onwards = nilai untuk setiap subkriteria)
+        let hasValidData = false
+        let mappedColumns = 0
+        
+        sortedSubkriteria.forEach((sub: Subkriteria, index: number) => {
+          // values[0] is karyawan code, values[1] onwards are nilai
+          const value = values[index + 1]
+          
+          if (value !== undefined && value !== null && value !== '') {
+            const numValue = parseInt(value)
+            if (!isNaN(numValue) && numValue >= 1 && numValue <= 5) {
+              pData[`sub_${sub.id}`] = numValue
+              hasValidData = true
+              mappedColumns++
+            }
+          }
+        })
+
+        console.log(`Mapped ${mappedColumns}/${sortedSubkriteria.length} columns for ${karyawanCode}`)
+
+        if (hasValidData) {
+          importData.push(pData)
+        } else {
+          skippedRows.push(`Baris ${i + 1}: ${karyawanCode} - tidak ada nilai valid`)
+        }
+      }
+
+      console.log('Final import data:', importData)
+      console.log('Total valid rows:', importData.length)
+      console.log('Skipped rows:', skippedRows)
+
+      if (importData.length === 0) {
+        const message = skippedRows.length > 0 
+          ? `Tidak ada data valid untuk diimport!\n\n${skippedRows.join('\n')}`
+          : 'Tidak ada data valid untuk diimport!'
+        alert(message)
+        return
+      }
+
+      // Save imported data
+      const response = await fetch("/api/penilaian/batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          penilaianData: importData
+        }),
+      })
+
+      if (response.ok) {
+        const successMsg = newKaryawanCodes.length > 0
+          ? `Berhasil import ${importData.length} data!\n\nKaryawan baru ditambahkan: ${newKaryawanCodes.join(', ')}`
+          : `Berhasil import ${importData.length} data karyawan!`
+        alert(successMsg)
+        await fetchKaryawan() // Refresh karyawan list
+        fetchPenilaianData()
+      } else {
+        const error = await response.json()
+        alert(`Gagal import: ${error.error}`)
+      }
+    } catch (error) {
+      console.error("Error importing:", error)
+      alert("Terjadi kesalahan saat import data")
+    } finally {
+      setImporting(false)
+      // Reset input
+      event.target.value = ''
+    }
+  }
+
+  const handleDownloadTemplate = () => {
+    // Create CSV content
+    let csvContent = ''
+    
+    // Header row
+    const headers = ['Alternatif']
+    
+    // Add subkriteria columns grouped by kriteria
+    const groupedSubs = subkriteriaList.reduce((acc, sub) => {
+      const kriteriaKode = sub.kriteria?.kode || 'Unknown'
+      if (!acc[kriteriaKode]) acc[kriteriaKode] = []
+      acc[kriteriaKode].push(sub)
+      return acc
+    }, {} as Record<string, Subkriteria[]>)
+
+    Object.entries(groupedSubs).forEach(([kriteriaKode, subs]) => {
+      subs.forEach((sub) => {
+        headers.push(`${kriteriaKode}_${sub.kode}`)
+      })
+    })
+    
+    csvContent += headers.join(',') + '\n'
+    
+    // Add data rows for each karyawan
+    karyawanList.forEach((karyawan) => {
+      const row = [karyawan.kode]
+      Object.values(groupedSubs).forEach((subs) => {
+        subs.forEach((sub) => {
+          row.push((sub.nilaiStandar || 3).toString())
+        })
+      })
+      csvContent += row.join(',') + '\n'
+    })
+
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'Template_Import_Penilaian.csv')
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   const fetchPenilaianData = async () => {
     try {
@@ -175,7 +409,7 @@ export default function DataAlternatifPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus karyawan ini?")) return;
+    if (!confirm("Apakah Anda yakin ingin menghapus karyawan ini? Data penilaian terkait juga akan dihapus.")) return;
 
     try {
       const response = await fetch(`/api/karyawan/${id}`, {
@@ -183,9 +417,12 @@ export default function DataAlternatifPage() {
       });
 
       if (response.ok) {
+        alert("Karyawan berhasil dihapus");
         fetchKaryawan();
+        fetchPenilaianData();
       } else {
-        alert("Gagal menghapus karyawan");
+        const error = await response.json();
+        alert(`Gagal menghapus karyawan: ${error.details || error.error}`);
       }
     } catch (error) {
       console.error("Error deleting karyawan:", error);
@@ -239,6 +476,30 @@ export default function DataAlternatifPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={handleDownloadTemplate}
+              variant="outline"
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download Template
+            </Button>
+            <Button
+              onClick={() => document.getElementById('excel-import')?.click()}
+              disabled={importing}
+              variant="outline"
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              {importing ? "Mengimport..." : "Import CSV"}
+            </Button>
+            <input
+              id="excel-import"
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={handleImportExcel}
+            />
             <Button onClick={handleAdd} className="gap-2">
               <Plus className="h-4 w-4" />
               Tambah Karyawan
