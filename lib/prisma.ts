@@ -10,8 +10,14 @@ declare global {
 // Only initialize on server-side
 if (typeof window === 'undefined') {
   if (!global.pool) {
+    // Use Transaction mode (port 6543) with proper pooling
+    const connectionString = process.env.DATABASE_URL
+    
     global.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: connectionString,
+      max: 10, // Maximum number of clients in the pool
+      idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+      connectionTimeoutMillis: 10000, // Return error after 10 seconds if unable to connect
     })
   }
   
@@ -25,3 +31,4 @@ if (typeof window === 'undefined') {
 }
 
 export const prisma = global.prisma!
+export const pool = global.pool

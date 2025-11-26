@@ -42,21 +42,38 @@ export default function Home() {
         fetch("/api/penilaian/batch")
       ])
 
+      // Check if responses are ok
+      if (!karyawanRes.ok || !kriteriaRes.ok || !subkriteriaRes.ok || !penilaianRes.ok) {
+        console.error("API Error:", {
+          karyawan: karyawanRes.status,
+          kriteria: kriteriaRes.status,
+          subkriteria: subkriteriaRes.status,
+          penilaian: penilaianRes.status
+        })
+        return
+      }
+
       const karyawan = await karyawanRes.json()
       const kriteria = await kriteriaRes.json()
       const subkriteria = await subkriteriaRes.json()
       const penilaian = await penilaianRes.json()
 
+      // Validate data is array
+      const karyawanArray = Array.isArray(karyawan) ? karyawan : []
+      const kriteriaArray = Array.isArray(kriteria) ? kriteria : []
+      const subkriteriaArray = Array.isArray(subkriteria) ? subkriteria : []
+      const penilaianArray = Array.isArray(penilaian) ? penilaian : []
+
       // Count unique karyawan with penilaian
-      const karyawanWithPenilaian = new Set(penilaian.map((p: { karyawanId: number }) => p.karyawanId))
+      const karyawanWithPenilaian = new Set(penilaianArray.map((p: { karyawanId: number }) => p.karyawanId))
 
       setStats({
-        totalKaryawan: karyawan.length,
-        totalKriteria: kriteria.length,
-        totalSubkriteria: subkriteria.length,
+        totalKaryawan: karyawanArray.length,
+        totalKriteria: kriteriaArray.length,
+        totalSubkriteria: subkriteriaArray.length,
         totalPenilaian: karyawanWithPenilaian.size,
-        karyawanAktif: karyawan.filter((k: { isAktif: boolean }) => k.isAktif).length,
-        topKaryawan: karyawan.slice(0, 5) // Top 5 for now
+        karyawanAktif: karyawanArray.filter((k: { isAktif: boolean }) => k.isAktif).length,
+        topKaryawan: karyawanArray.slice(0, 5) // Top 5 for now
       })
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
@@ -139,7 +156,7 @@ export default function Home() {
                     <CardTitle className="text-sm font-semibold text-gray-700">
                       {stat.title}
                     </CardTitle>
-                    <div className={`rounded-xl bg-gradient-to-br ${stat.color} p-3 shadow-lg`}>
+                    <div className={`rounded-xl bg-linear-to-br ${stat.color} p-3 shadow-lg`}>
                       <Icon className="h-5 w-5 text-white" />
                     </div>
                   </CardHeader>
@@ -219,7 +236,7 @@ export default function Home() {
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-white font-bold text-sm">
+                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-linear-to-br from-amber-400 to-amber-600 text-white font-bold text-sm">
                         {index + 1}
                       </div>
                       <div>
