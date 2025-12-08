@@ -110,112 +110,55 @@ export default function PerbandinganKriteriaPage() {
   }
 
   const handleMatrixChange = (idA: number, idB: number, value: string) => {
-    const numValue = parseFloat(value) || 1
-    const clampedValue = Math.max(0.111, Math.min(9, numValue)) // AHP scale 1/9 to 9
+    // Jangan validasi saat mengetik, biarkan user bebas ketik
+    const numValue = value === '' ? '' : parseFloat(value)
     
     const newMatrix = new Map(matrix)
     const key = `${idA}-${idB}`
-    newMatrix.set(key, clampedValue)
+    
+    // Simpan nilai mentah dulu, validasi nanti saat blur atau simpan
+    if (numValue === '') {
+      newMatrix.set(key, 1) // Default ke 1 jika kosong
+    } else if (!isNaN(numValue as number)) {
+      newMatrix.set(key, numValue as number)
+    }
     
     setMatrix(newMatrix)
   }
 
-  const calculateConsistency = () => {
-    const n = kriteriaList.length
-    if (n < 3) {
-      alert("Minimal 3 kriteria untuk menghitung konsistensi")
-      return
-    }
-
-    // Build matrix array
-    const matrixArray: number[][] = []
-    for (let i = 0; i < n; i++) {
-      const row: number[] = []
-      for (let j = 0; j < n; j++) {
-        row.push(getMatrixValue(kriteriaList[i].id, kriteriaList[j].id))
-      }
-      matrixArray.push(row)
-    }
-
-    // Calculate column sums
-    const columnSums = Array(n).fill(0)
-    for (let j = 0; j < n; j++) {
-      for (let i = 0; i < n; i++) {
-        columnSums[j] += matrixArray[i][j]
-      }
-    }
-
-    // Normalize matrix
-    const normalized: number[][] = []
-    for (let i = 0; i < n; i++) {
-      const row: number[] = []
-      for (let j = 0; j < n; j++) {
-        row.push(matrixArray[i][j] / columnSums[j])
-      }
-      normalized.push(row)
-    }
-
-    // Calculate priority vector (average of rows)
-    const priorityVector = normalized.map(row => 
-      row.reduce((sum, val) => sum + val, 0) / n
-    )
-
-    // Calculate lambda max (matrix × priority vector)
-    const weightedSum = matrixArray.map((row) => 
-      row.reduce((sum, val, j) => sum + val * priorityVector[j], 0)
-    )
-    const lambdaMax = weightedSum.reduce((sum, val, i) => 
-      sum + val / priorityVector[i], 0
-    ) / n
-
-    // Calculate CI and CR
-    const ci = (lambdaMax - n) / (n - 1)
-    const ri = [0, 0, 0.58, 0.90, 1.12, 1.24, 1.32, 1.41, 1.45, 1.49][n] || 1.49
-    const cr = ci / ri
-
-    setCalculationResult({
-      matrixArray,
-      columnSums,
-      normalized,
-      priorityVector,
-      weightedSum,
-      lambdaMax,
-      ci,
-      cr,
-      n
-    })
-
-    // Save bobot to database
-    saveBobotKriteria(priorityVector)
-  }
-
-  const saveBobotKriteria = async (priorityVector: number[]) => {
-    try {
-      const bobotData = kriteriaList.map((kriteria, index) => ({
-        kriteriaId: kriteria.id,
-        bobot: priorityVector[index]
-      }))
-
-      await fetch("/api/ahp/bobot-kriteria", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bobot: bobotData })
-      })
-    } catch (error) {
-      console.error("Error saving bobot:", error)
+  const handleInputBlur = (idA: number, idB: number) => {
+    // Validasi dan clamp nilai saat user selesai input (blur)
+    const key = `${idA}-${idB}`
+    const currentValue = matrix.get(key) || 1
+    const clampedValue = Math.max(0.111, Math.min(9, currentValue))
+    
+    if (currentValue !== clampedValue) {
+      const newMatrix = new Map(matrix)
+      newMatrix.set(key, clampedValue)
+      setMatrix(newMatrix)
     }
   }
 
-  const handleSave = async () => {
+  const handleSaveAndCalculate = async () => {
     setSaving(true)
+    
     try {
+      // 1. Validasi dan clamp semua nilai matrix terlebih dahulu
+      const validatedMatrix = new Map(matrix)
+      validatedMatrix.forEach((value, key) => {
+        const clampedValue = Math.max(0.111, Math.min(9, value))
+        validatedMatrix.set(key, clampedValue)
+      })
+      setMatrix(validatedMatrix)
+      
+      // 2. Simpan matrix ke database
       const matrixData: MatrixValue[] = []
       
       kriteriaList.forEach((kriteriaA, i) => {
         kriteriaList.forEach((kriteriaB, j) => {
           if (i < j) { // Only save upper triangle
             const key = `${kriteriaA.id}-${kriteriaB.id}`
-            const nilai = matrix.get(key) || 1
+            const nilai = validatedMatrix.get(key) || 1
             matrixData.push({
               kriteriaAId: kriteriaA.id,
               kriteriaBId: kriteriaB.id,
@@ -231,16 +174,94 @@ export default function PerbandinganKriteriaPage() {
         body: JSON.stringify({ matrix: matrixData })
       })
 
-      if (response.ok) {
-        alert("Matriks perbandingan berhasil disimpan!")
-        calculateConsistency()
-      } else {
+      if (!response.ok) {
         const error = await response.json()
         alert(`Gagal menyimpan: ${error.error}`)
+        return
       }
+
+      // 3. Hitung konsistensi setelah save berhasil
+      const n = kriteriaList.length
+      if (n < 3) {
+        alert("Minimal 3 kriteria untuk menghitung konsistensi")
+        return
+      }
+
+      // Build matrix array
+      const matrixArray: number[][] = []
+      for (let i = 0; i < n; i++) {
+        const row: number[] = []
+        for (let j = 0; j < n; j++) {
+          row.push(getMatrixValue(kriteriaList[i].id, kriteriaList[j].id))
+        }
+        matrixArray.push(row)
+      }
+
+      // Calculate column sums
+      const columnSums = Array(n).fill(0)
+      for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+          columnSums[j] += matrixArray[i][j]
+        }
+      }
+
+      // Normalize matrix
+      const normalized: number[][] = []
+      for (let i = 0; i < n; i++) {
+        const row: number[] = []
+        for (let j = 0; j < n; j++) {
+          row.push(matrixArray[i][j] / columnSums[j])
+        }
+        normalized.push(row)
+      }
+
+      // Calculate priority vector (average of rows)
+      const priorityVector = normalized.map(row => 
+        row.reduce((sum, val) => sum + val, 0) / n
+      )
+
+      // Calculate lambda max (matrix × priority vector)
+      const weightedSum = matrixArray.map((row) => 
+        row.reduce((sum, val, j) => sum + val * priorityVector[j], 0)
+      )
+      const lambdaMax = weightedSum.reduce((sum, val, i) => 
+        sum + val / priorityVector[i], 0
+      ) / n
+
+      // Calculate CI and CR
+      const ci = (lambdaMax - n) / (n - 1)
+      const ri = [0, 0, 0.58, 0.90, 1.12, 1.24, 1.32, 1.41, 1.45, 1.49][n] || 1.49
+      const cr = ci / ri
+
+      setCalculationResult({
+        matrixArray,
+        columnSums,
+        normalized,
+        priorityVector,
+        weightedSum,
+        lambdaMax,
+        ci,
+        cr,
+        n
+      })
+
+      // 4. Save bobot to database
+      const bobotData = kriteriaList.map((kriteria, index) => ({
+        kriteriaId: kriteria.id,
+        bobot: priorityVector[index]
+      }))
+
+      await fetch("/api/ahp/bobot-kriteria", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bobot: bobotData })
+      })
+
+      alert("✅ Matrix berhasil disimpan dan konsistensi telah dihitung!")
+      
     } catch (error) {
-      console.error("Error saving matrix:", error)
-      alert("Terjadi kesalahan saat menyimpan")
+      console.error("Error:", error)
+      alert("Terjadi kesalahan saat menyimpan dan menghitung")
     } finally {
       setSaving(false)
     }
@@ -376,6 +397,7 @@ export default function PerbandinganKriteriaPage() {
                                   max="9"
                                   value={value}
                                   onChange={(e) => handleMatrixChange(kriteriaA.id, kriteriaB.id, e.target.value)}
+                                  onBlur={() => handleInputBlur(kriteriaA.id, kriteriaB.id)}
                                   className="text-center font-semibold border-violet-300 focus:border-violet-500"
                                 />
                               ) : (
@@ -392,22 +414,14 @@ export default function PerbandinganKriteriaPage() {
                 </table>
               </div>
 
-              <div className="mt-6 flex gap-3">
+              <div className="mt-6">
                 <Button
-                  onClick={handleSave}
+                  onClick={handleSaveAndCalculate}
                   disabled={saving}
                   className="bg-violet-600 hover:bg-violet-700"
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? "Menyimpan..." : "Simpan Matriks"}
-                </Button>
-                <Button
-                  onClick={calculateConsistency}
-                  variant="outline"
-                  className="border-violet-600 text-violet-600 hover:bg-violet-50"
-                >
                   <Calculator className="h-4 w-4 mr-2" />
-                  Hitung Konsistensi
+                  {saving ? "Memproses..." : "Hitung Konsistensi"}
                 </Button>
               </div>
             </CardContent>
