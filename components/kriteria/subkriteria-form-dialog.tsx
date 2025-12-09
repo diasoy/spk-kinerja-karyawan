@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Kriteria, Subkriteria, FaktorType } from "@/types/kriteria"
+import { toast } from "sonner"
 
 interface SubkriteriaFormDialogProps {
   open: boolean
@@ -90,7 +91,9 @@ export function SubkriteriaFormDialog({
       onOpenChange(false)
     } catch (error) {
       console.error("Error saving subkriteria:", error)
-      alert(`Gagal menyimpan data subkriteria: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast.error('Gagal Menyimpan Subkriteria', {
+        description: error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui'
+      })
     } finally {
       setLoading(false)
     }

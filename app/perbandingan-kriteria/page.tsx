@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { GitCompare, Save, Calculator, Info, AlertCircle } from "lucide-react"
+import { toast } from "sonner"
 
 interface Kriteria {
   id: number
@@ -176,14 +177,18 @@ export default function PerbandinganKriteriaPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        alert(`Gagal menyimpan: ${error.error}`)
+        toast.error('Gagal Menyimpan Matrix', {
+          description: error.error || 'Terjadi kesalahan saat menyimpan matrix'
+        })
         return
       }
 
       // 3. Hitung konsistensi setelah save berhasil
       const n = kriteriaList.length
       if (n < 3) {
-        alert("Minimal 3 kriteria untuk menghitung konsistensi")
+        toast.warning('Kriteria Tidak Cukup', {
+          description: 'Minimal 3 kriteria diperlukan untuk menghitung konsistensi'
+        })
         return
       }
 
@@ -257,11 +262,52 @@ export default function PerbandinganKriteriaPage() {
         body: JSON.stringify({ bobot: bobotData })
       })
 
-      alert("✅ Matrix berhasil disimpan dan konsistensi telah dihitung!")
+      // Toast berdasarkan hasil konsistensi
+      if (cr <= 0.1) {
+        toast.success('Matriks Konsisten! ✓', {
+          description: (
+            <div className="space-y-2">
+              <div className="font-semibold">Consistency Ratio (CR) = {cr.toFixed(4)}</div>
+              <div className="text-sm">CR ≤ 0.1 (Batas maksimal)</div>
+              <div className="mt-2 text-sm leading-relaxed">
+                Perbandingan yang Anda buat sudah konsisten dan dapat diterima. 
+                Bobot kriteria yang dihasilkan valid dan dapat digunakan untuk proses penilaian.
+              </div>
+              <div className="mt-2 font-semibold text-green-700">Matrix berhasil disimpan!</div>
+            </div>
+          ),
+          duration: 8000
+        })
+      } else {
+        toast.error('Matriks Tidak Konsisten!', {
+          description: (
+            <div className="space-y-2">
+              <div className="font-semibold">Consistency Ratio (CR) = {cr.toFixed(4)}</div>
+              <div className="text-sm">CR &gt; 0.1 (Melebihi batas)</div>
+              <div className="mt-2 text-sm leading-relaxed">
+                Terdapat inkonsistensi dalam perbandingan yang Anda buat. 
+                Silakan periksa kembali nilai-nilai perbandingan untuk memastikan logika perbandingan sudah benar.
+              </div>
+              <div className="mt-2 text-xs bg-red-50 p-2 rounded">
+                <strong>Contoh inkonsistensi:</strong><br/>
+                Jika A lebih penting dari B (nilai 3), dan B lebih penting dari C (nilai 3), 
+                maka A seharusnya lebih penting dari C (sekitar nilai 9).
+              </div>
+              <div className="mt-2 text-sm font-semibold">
+                Saran: Revisi nilai perbandingan yang kurang konsisten.
+              </div>
+              <div className="mt-2 text-xs text-orange-700">Matrix tetap disimpan, namun disarankan untuk diperbaiki.</div>
+            </div>
+          ),
+          duration: 12000
+        })
+      }
       
     } catch (error) {
       console.error("Error:", error)
-      alert("Terjadi kesalahan saat menyimpan dan menghitung")
+      toast.error('Terjadi Kesalahan', {
+        description: 'Gagal menyimpan dan menghitung konsistensi. Silakan coba lagi.'
+      })
     } finally {
       setSaving(false)
     }

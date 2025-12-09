@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -150,7 +151,9 @@ export default function DataAlternatifPage() {
       console.log('Fresh subkriteria count:', freshSubkriteria.length)
 
       if (freshSubkriteria.length === 0) {
-        alert('Belum ada data subkriteria! Silakan setup kriteria terlebih dahulu.')
+        toast.warning('Data Subkriteria Belum Ada', {
+          description: 'Silakan setup kriteria terlebih dahulu sebelum import data'
+        })
         return
       }
 
@@ -159,7 +162,9 @@ export default function DataAlternatifPage() {
       const lines = text.split(/\r?\n/).filter(line => line.trim())
       
       if (lines.length < 2) {
-        alert('File CSV kosong atau hanya memiliki header!')
+        toast.warning('File CSV Kosong', {
+          description: 'File tidak memiliki data atau hanya berisi header'
+        })
         return
       }
 
@@ -275,10 +280,11 @@ export default function DataAlternatifPage() {
       console.log('Skipped rows:', skippedRows)
 
       if (importData.length === 0) {
-        const message = skippedRows.length > 0 
-          ? `Tidak ada data valid untuk diimport!\n\n${skippedRows.join('\n')}`
-          : 'Tidak ada data valid untuk diimport!'
-        alert(message)
+        toast.error('Tidak Ada Data Valid', {
+          description: skippedRows.length > 0 
+            ? `${skippedRows.slice(0, 3).join(', ')}${skippedRows.length > 3 ? '...' : ''}`
+            : 'Tidak ada data valid untuk diimport'
+        })
         return
       }
 
@@ -294,19 +300,25 @@ export default function DataAlternatifPage() {
       })
 
       if (response.ok) {
-        const successMsg = newKaryawanCodes.length > 0
-          ? `Berhasil import ${importData.length} data!\n\nKaryawan baru ditambahkan: ${newKaryawanCodes.join(', ')}`
-          : `Berhasil import ${importData.length} data karyawan!`
-        alert(successMsg)
+        toast.success('Import Data Berhasil!', {
+          description: newKaryawanCodes.length > 0
+            ? `${importData.length} data berhasil diimport. Karyawan baru: ${newKaryawanCodes.join(', ')}`
+            : `${importData.length} data karyawan berhasil diimport`,
+          duration: 5000
+        })
         await fetchKaryawan() // Refresh karyawan list
         fetchPenilaianData()
       } else {
         const error = await response.json()
-        alert(`Gagal import: ${error.error}`)
+        toast.error('Gagal Import Data', {
+          description: error.error
+        })
       }
     } catch (error) {
       console.error("Error importing:", error)
-      alert("Terjadi kesalahan saat import data")
+      toast.error('Terjadi Kesalahan', {
+        description: 'Gagal melakukan import data'
+      })
     } finally {
       setImporting(false)
       // Reset input
@@ -417,16 +429,22 @@ export default function DataAlternatifPage() {
       });
 
       if (response.ok) {
-        alert("Karyawan berhasil dihapus");
+        toast.success('Karyawan Berhasil Dihapus', {
+          description: 'Data karyawan dan penilaian terkait telah dihapus'
+        });
         fetchKaryawan();
         fetchPenilaianData();
       } else {
         const error = await response.json();
-        alert(`Gagal menghapus karyawan: ${error.details || error.error}`);
+        toast.error('Gagal Menghapus Karyawan', {
+          description: error.details || error.error
+        });
       }
     } catch (error) {
       console.error("Error deleting karyawan:", error);
-      alert("Terjadi kesalahan saat menghapus karyawan");
+      toast.error('Terjadi Kesalahan', {
+        description: 'Gagal menghapus karyawan'
+      });
     }
   };
 

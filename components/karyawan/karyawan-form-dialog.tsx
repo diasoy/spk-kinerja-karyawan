@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
 
 interface Karyawan {
   id: number
@@ -147,7 +148,9 @@ export function KaryawanFormDialog({
       onOpenChange(false)
     } catch (error) {
       console.error("Error saving karyawan:", error)
-      alert(`Gagal menyimpan data karyawan: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast.error('Gagal Menyimpan Data Karyawan', {
+        description: error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui'
+      })
     } finally {
       setLoading(false)
     }

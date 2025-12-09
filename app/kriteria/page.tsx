@@ -7,6 +7,7 @@ import { Layers, Plus, Pencil, Trash2 } from "lucide-react"
 import { KriteriaFormDialog } from "@/components/kriteria/kriteria-form-dialog"
 import { SubkriteriaFormDialog } from "@/components/kriteria/subkriteria-form-dialog"
 import { Kriteria, Subkriteria } from "@/types/kriteria"
+import { toast } from "sonner"
 
 export default function KriteriaPage() {
   const [kriteriaList, setKriteriaList] = useState<Kriteria[]>([])
@@ -60,15 +61,21 @@ export default function KriteriaPage() {
       if (response.ok) {
         const result = await response.json()
         if (result.deletedSubkriteria > 0) {
-          alert(`Kriteria berhasil dihapus bersama ${result.deletedSubkriteria} subkriteria`)
+          toast.success('Kriteria Berhasil Dihapus', {
+            description: `Bersama ${result.deletedSubkriteria} subkriteria terkait`
+          })
+        } else {
+          toast.success('Kriteria Berhasil Dihapus')
         }
         fetchKriteria()
       } else {
-        alert("Gagal menghapus kriteria")
+        toast.error('Gagal Menghapus Kriteria')
       }
     } catch (error) {
       console.error("Error deleting kriteria:", error)
-      alert("Terjadi kesalahan saat menghapus kriteria")
+      toast.error('Terjadi Kesalahan', {
+        description: 'Gagal menghapus kriteria'
+      })
     }
   }
 
@@ -91,14 +98,19 @@ export default function KriteriaPage() {
       })
 
       if (response.ok) {
+        toast.success('Subkriteria Berhasil Dihapus')
         fetchKriteria()
       } else {
         const errorData = await response.json()
-        alert(errorData.error + (errorData.details ? '\n\n' + errorData.details : ''))
+        toast.error('Gagal Menghapus Subkriteria', {
+          description: errorData.error + (errorData.details ? '. ' + errorData.details : '')
+        })
       }
     } catch (error) {
       console.error('Error deleting subkriteria:', error)
-      alert('Terjadi kesalahan saat menghapus subkriteria')
+      toast.error('Terjadi Kesalahan', {
+        description: 'Gagal menghapus subkriteria'
+      })
     }
   }
 

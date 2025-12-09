@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Kriteria } from "@/types/kriteria"
+import { toast } from "sonner"
 
 interface KriteriaFormDialogProps {
   open: boolean
@@ -76,7 +77,9 @@ export function KriteriaFormDialog({
       onOpenChange(false)
     } catch (error) {
       console.error("Error saving kriteria:", error)
-      alert("Gagal menyimpan data kriteria")
+      toast.error('Gagal Menyimpan Kriteria', {
+        description: 'Terjadi kesalahan saat menyimpan data kriteria'
+      })
     } finally {
       setLoading(false)
     }

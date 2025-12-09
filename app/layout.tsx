@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body
         className={`${inter.className} antialiased`}
       >
+        <Toaster richColors position="top-right" expand={true} />
         <div className="flex h-screen overflow-hidden bg-slate-50">
           <Sidebar />
           <main className="flex-1 overflow-y-auto">

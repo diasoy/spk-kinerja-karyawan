@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { TrendingDown, Calculator, Target, Save } from "lucide-react"
 import { Subkriteria } from "@/types/kriteria"
+import { toast } from "sonner"
 
 interface Karyawan {
   id: number
@@ -114,15 +115,21 @@ export default function GapPage() {
       })
 
       if (response.ok) {
-        alert("Data penilaian berhasil disimpan!")
+        toast.success('Data Penilaian Berhasil Disimpan!', {
+          description: 'Semua perubahan telah tersimpan'
+        })
         fetchData() // Refresh data
       } else {
         const error = await response.json()
-        alert(`Gagal menyimpan: ${error.error}`)
+        toast.error('Gagal Menyimpan Data', {
+          description: error.error
+        })
       }
     } catch (error) {
       console.error("Error saving penilaian:", error)
-      alert("Terjadi kesalahan saat menyimpan data")
+      toast.error('Terjadi Kesalahan', {
+        description: 'Gagal menyimpan data penilaian'
+      })
     } finally {
       setSaving(false)
     }
